@@ -87,11 +87,12 @@ def _pct(x):
 
 
 def cmd_deals(args, settings, db):
-    rows = db.top_analyses(args.limit, args.min_score)
+    rows = db.top_analyses(1_000_000, args.min_score)
     if args.distressed:
         rows = [(a, l) for a, l in rows if a.condition.distress_signals]
     if args.cash_only is not None:
         rows = [(a, l) for a, l in rows if a.condition.cash_only == args.cash_only]
+    rows = rows[:args.limit]
     if args.csv:
         with open(args.csv, "w", newline="") as fh:
             w = csv.writer(fh)
