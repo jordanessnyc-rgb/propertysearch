@@ -156,6 +156,21 @@ class SourceParsingTests(unittest.TestCase):
             os.unlink(fh.name)
 
 
+    def test_redfin_export_columns(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as fh:
+            fh.write("SALE TYPE,PROPERTY TYPE,ADDRESS,CITY,STATE OR PROVINCE,ZIP OR POSTAL CODE,PRICE,BEDS,"
+                     "BATHS,SQUARE FEET,YEAR BUILT,DAYS ON MARKET,"
+                     "URL (SEE https://www.redfin.com/buy-a-home/comparative-market-analysis FOR INFO ON PRICING),MLS#\n")
+            fh.write("MLS Listing,Single Family Residential,9 Elm St,Akron,OH,44305,70000,3,1,1100,1920,12,"
+                     "https://www.redfin.com/x,5012345\n")
+        try:
+            [l] = list(read_listings_csv(fh.name, "redfin"))
+            self.assertEqual((l.state, l.zip, l.url, l.source_id, l.sqft, l.days_on_market),
+                             ("OH", "44305", "https://www.redfin.com/x", "5012345", 1100, 12))
+        finally:
+            os.unlink(fh.name)
+
+
 class DatabaseTests(unittest.TestCase):
     def test_price_change_tracking(self):
         db = Database(":memory:")

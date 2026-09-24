@@ -17,8 +17,8 @@ from .base import normalize_listing_type, normalize_property_type, to_float, to_
 ALIASES = {
     "address": ["address", "street address", "property address", "full address", "unparsedaddress", "street"],
     "city": ["city"],
-    "state": ["state", "st", "stateorprovince"],
-    "zip": ["zip", "zipcode", "zip code", "postal code", "postalcode"],
+    "state": ["state", "st", "stateorprovince", "state or province"],
+    "zip": ["zip", "zipcode", "zip code", "postal code", "postalcode", "zip or postal code"],
     "price": ["price", "list price", "listprice", "asking price", "asking", "opening bid", "starting bid", "sale price"],
     "beds": ["beds", "bedrooms", "br", "bedroomstotal", "total beds"],
     "baths": ["baths", "bathrooms", "ba", "bathroomstotalinteger", "total baths"],
@@ -29,7 +29,7 @@ ALIASES = {
     "description": ["description", "remarks", "public remarks", "publicremarks", "notes", "listing description"],
     "url": ["url", "link", "listing url"],
     "listing_type": ["listing type", "sale type", "special listing conditions", "condition", "status type"],
-    "source_id": ["id", "mls", "mls #", "mls number", "listing id", "listingid"],
+    "source_id": ["id", "mls", "mls #", "mls#", "mls number", "listing id", "listingid"],
     "days_on_market": ["dom", "days on market", "daysonmarket"],
     "annual_taxes": ["taxes", "annual taxes", "tax amount", "taxannualamount"],
     "hoa_monthly": ["hoa", "hoa fee", "hoa monthly"],
@@ -41,6 +41,11 @@ def _pick(row: dict, field: str, default=""):
     for alias in ALIASES[field]:
         if alias in row and row[alias] not in (None, ""):
             return row[alias]
+    # Some exports put notes in the header, e.g. Redfin's "URL (SEE https://... FOR INFO)".
+    for alias in ALIASES[field]:
+        for key, value in row.items():
+            if key.startswith(alias + " (") and value:
+                return value
     return default
 
 
