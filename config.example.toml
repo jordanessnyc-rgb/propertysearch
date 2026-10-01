@@ -1,0 +1,43 @@
+# Copy to config.toml and edit. API keys go in environment variables, not here:
+#   RESO_ACCESS_TOKEN   MLS access through the RESO Web API (from your MLS / broker / vendor)
+#   RENTCAST_API_KEY    https://www.rentcast.io/api (listings + rental comps)
+#   HUD_API_TOKEN       https://www.huduser.gov/hudapi/public/register (free; Section 8 FMRs)
+#   ANTHROPIC_API_KEY   only if use_llm_reader = true
+
+db_path = "data/dealfinder.db"
+markets = ["44105", "44108"]          # zip codes to scan
+max_price = 250000                     # 0 = no limit
+property_types = []                    # e.g. ["single_family", "multifamily_2_4"]; empty = all
+
+use_llm_reader = false                 # let Claude read each listing (needs `pip install anthropic`)
+llm_model = "claude-opus-5"
+
+[underwriting]
+financing = "auto"                     # auto (cash when listing is cash-only) | cash | loan
+down_payment_pct = 0.25
+interest_rate = 0.075
+loan_term_years = 30
+closing_cost_pct = 0.03
+
+vacancy_pct = 0.06
+management_pct = 0.08
+maintenance_pct = 0.08
+capex_pct = 0.05
+insurance_annual_per_unit = 1400
+property_tax_rate = 0.015              # used only when the listing has no tax amount
+utilities_monthly_per_unit = 0         # owner-paid utilities
+
+rent_basis = "best"                    # market | section8 | best (higher of the two, per unit)
+section8_payment_standard_pct = 1.0    # your housing authority's payment standard as % of FMR
+
+target_cap_rate = 0.09                 # drives "max offer" and scoring
+target_cash_on_cash = 0.12
+min_dscr = 1.25
+rehab_contingency_pct = 0.15
+
+[sources.reso]
+base_url = ""                          # e.g. https://api.bridgedataoutput.com/api/v2/OData/<dataset>
+extra_filter = ""                      # optional OData filter appended to the listing query
+
+[sources.hud]
+# year = 2026                          # FMR year; omit for the current year

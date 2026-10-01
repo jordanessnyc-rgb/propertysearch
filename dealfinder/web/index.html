@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Finder</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+  --accent: #1f6f5c; --accent-soft: #e2f0eb; --warn: #9a5b00; --warn-soft: #fbefd9;
+  --bad: #a3322a; --bad-soft: #f8e1df;
+  --gA: #1f6f5c; --gB: #3f8a4b; --gC: #8a7a1f; --gD: #a2601f; --gF: #a3322a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9c9b95; --line: #33332f;
+    --accent: #5cc2a4; --accent-soft: #1d3530; --warn: #e3a84d; --warn-soft: #3a2c16;
+    --bad: #ec7d74; --bad-soft: #3d1f1c;
+    --gA: #5cc2a4; --gB: #7cc486; --gC: #d2c05a; --gD: #e39a5a; --gF: #ec7d74;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 20px 24px 8px; display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; }
+h1 { font-size: 20px; margin: 0; }
+.stats { color: var(--muted); font-size: 13px; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 24px 16px; align-items: center; }
+.bar label { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+input, select, button { font: inherit; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+button { cursor: pointer; }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+main { padding: 0 24px 40px; }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 980px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--panel); }
+td.l, th.l { text-align: left; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--accent-soft); }
+.num { font-variant-numeric: tabular-nums; }
+.grade { display: inline-block; width: 22px; text-align: center; border-radius: 4px; font-weight: 700; color: var(--bg); }
+.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-right: 4px; }
+.tag.cash { background: var(--warn-soft); color: var(--warn); }
+.tag.dist { background: var(--bad-soft); color: var(--bad); }
+.tag.s8 { background: var(--accent-soft); color: var(--accent); }
+.addr { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.neg { color: var(--bad); }
+.pos { color: var(--accent); }
+#detail { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--panel);
+  border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; transform: translateX(100%);
+  transition: transform .2s; box-shadow: -8px 0 24px rgba(0,0,0,.08); }
+#detail.open { transform: none; }
+#detail h2 { font-size: 17px; margin: 0 30px 4px 0; }
+#detail .close { position: absolute; top: 14px; right: 14px; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 12px 0; }
+.kv div span { display: block; font-size: 11px; color: var(--muted); }
+.kv div b { font-variant-numeric: tabular-nums; }
+.section { margin-top: 16px; }
+.section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+.section ul { margin: 0; padding-left: 18px; }
+.desc { white-space: pre-wrap; font-size: 13px; color: var(--muted); }
+.empty { padding: 40px; text-align: center; color: var(--muted); }
+@media (max-width: 640px) { header, .bar, main { padding-left: 16px; padding-right: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Deal Finder</h1>
+  <div class="stats" id="stats"></div>
+</header>
+<div class="bar">
+  <label>Search <input id="q" placeholder="address, zip, keyword" size="18"></label>
+  <label>Min score <input id="minScore" type="number" value="0" min="0" max="100" style="width:64px"></label>
+  <label>Condition
+    <select id="cond"><option value="">any</option><option>turnkey</option><option>light</option>
+      <option>moderate</option><option>heavy</option><option>gut</option></select></label>
+  <label>Financing
+    <select id="fin"><option value="">any</option><option value="cash">cash only</option>
+      <option value="loan">financeable</option></select></label>
+  <label><input type="checkbox" id="distressed"> distressed only</label>
+  <label><input type="checkbox" id="s8"> Section 8 beats market</label>
+  <button class="primary" id="reanalyze">Re-analyze</button>
+</div>
+<main>
+  <div class="tablewrap"><table>
+    <thead><tr>
+      <th data-k="score">Score</th><th class="l" data-k="address">Address</th>
+      <th data-k="price">Asking</th><th data-k="max_offer">Max offer</th>
+      <th data-k="discount">vs asking</th><th data-k="rent">Rent/mo</th>
+      <th data-k="rehab">Rehab</th><th data-k="cap">Cap</th><th data-k="coc">CoC</th>
+      <th data-k="cf">Cash flow/mo</th><th class="l" data-k="cond">Condition</th><th class="l">Flags</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+</main>
+<aside id="detail"><button class="close" id="close">✕</button><div id="detailBody"></div></aside>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = (n) => n == null ? "–" : "$" + Math.round(n).toLocaleString();
+const pct = (n) => n == null ? "–" : (n * 100).toFixed(1) + "%";
+let deals = [], sortKey = "score", sortDir = -1, targetCap = 0.09;
+
+const val = {
+  score: d => d.analysis.score, address: d => d.listing.address, price: d => d.listing.price,
+  max_offer: d => d.analysis.max_offer, discount: d => d.analysis.discount_to_max_offer,
+  rent: d => d.analysis.rent_used, rehab: d => d.analysis.rehab_cost, cap: d => d.analysis.cap_rate,
+  coc: d => d.analysis.cash_on_cash, cf: d => d.analysis.cash_flow_monthly,
+  cond: d => ["turnkey","light","moderate","heavy","gut"].indexOf(d.analysis.condition.condition),
+};
+
+async function load() {
+  const r = await fetch("/api/deals");
+  const data = await r.json();
+  deals = data.deals; targetCap = data.target_cap_rate;
+  const s = data.stats;
+  $("stats").textContent = `${s.listings} listings · ${s.rent_comps} rent comps · ${s.fmr_areas} Section 8 areas · ${s.analyzed} analyzed`;
+  render();
+}
+
+function render() {
+  const q = $("q").value.toLowerCase(), min = +$("minScore").value || 0, cond = $("cond").value,
+        fin = $("fin").value, dist = $("distressed").checked, s8 = $("s8").checked;
+  const rows = deals.filter(d => {
+    const a = d.analysis, l = d.listing, c = a.condition;
+    if (a.score < min) return false;
+    if (cond && c.condition !== cond) return false;
+    if (fin && a.financing !== fin) return false;
+    if (dist && !c.distress_signals.length) return false;
+    if (s8 && a.rent_basis === "market") return false;
+    if (q && !`${l.address} ${l.city} ${l.zip} ${l.description}`.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((x, y) => {
+    const a = val[sortKey](x), b = val[sortKey](y);
+    return (a > b ? 1 : a < b ? -1 : 0) * sortDir;
+  });
+  if (!rows.length) {
+    $("rows").innerHTML = `<tr><td colspan="12" class="empty">${deals.length ? "No deals match these filters." : "No analyzed deals yet. Load data, then click Re-analyze."}</td></tr>`;
+    return;
+  }
+  $("rows").innerHTML = rows.map(d => {
+    const a = d.analysis, l = d.listing, c = a.condition;
+    const flags = [
+      a.financing === "cash" ? `<span class="tag cash">cash only</span>` : "",
+      c.distress_signals.length ? `<span class="tag dist" title="${esc(c.distress_signals.join("; "))}">distress ${c.distress_signals.length}</span>` : "",
+      a.rent_basis !== "market" ? `<span class="tag s8">Sec 8</span>` : "",
+    ].join("");
+    return `<tr data-key="${esc(l.key)}">
+      <td><span class="grade" style="background:var(--g${a.grade})">${a.grade}</span> <span class="num">${a.score.toFixed(0)}</span></td>
+      <td class="l addr" title="${esc(l.address)}">${esc(l.address)}, ${esc(l.zip)}</td>
+      <td class="num">${money(l.price)}</td><td class="num">${money(a.max_offer)}</td>
+      <td class="num ${a.discount_to_max_offer >= 0 ? "pos" : "neg"}">${pct(a.discount_to_max_offer)}</td>
+      <td class="num">${money(a.rent_used)}</td><td class="num">${money(a.rehab_cost)}</td>
+      <td class="num">${pct(a.cap_rate)}</td><td class="num">${pct(a.cash_on_cash)}</td>
+      <td class="num ${a.cash_flow_monthly >= 0 ? "" : "neg"}">${money(a.cash_flow_monthly)}</td>
+      <td class="l">${esc(c.condition)}</td><td class="l">${flags}</td></tr>`;
+  }).join("");
+}
+
+async function openDetail(key) {
+  const r = await fetch("/api/listing?key=" + encodeURIComponent(key));
+  const { listing: l, analysis: a, price_history: h } = await r.json();
+  if (!a) { $("detailBody").innerHTML = `<h2>${esc(l.address)}</h2><p class="stats">Not analyzed yet (no rent data for this zip?).</p>`; $("detail").classList.add("open"); return; }
+  const c = a.condition;
+  const list = (title, items) => items && items.length ? `<div class="section"><h3>${title}</h3><ul>${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div>` : "";
+  $("detailBody").innerHTML = `
+    <h2>${esc(l.address)}</h2>
+    <div class="stats">${esc(l.city)} ${esc(l.state)} ${esc(l.zip)} · ${esc(l.property_type.replace(/_/g," "))} · ${l.units} unit(s) · ${l.beds}bd/${l.baths}ba · ${l.sqft || "?"} sqft · built ${l.year_built || "?"}</div>
+    <div class="stats">Source: ${esc(l.source)} · sale type: ${esc(l.listing_type.replace(/_/g," "))} · ${l.days_on_market ?? "?"} days on market
+      ${l.url && /^https?:\/\//.test(l.url) ? ` · <a href="${esc(l.url)}" target="_blank" rel="noopener">listing ↗</a>` : ""}</div>
+    <div class="kv">
+      <div><span>Score</span><b>${a.score} (${a.grade})</b></div>
+      <div><span>Financing assumed</span><b>${a.financing}</b></div>
+      <div><span>Asking</span><b>${money(l.price)}</b></div>
+      <div><span>Max offer (${pct(targetCap)} cap)</span><b>${money(a.max_offer)}</b></div>
+      <div><span>Market rent</span><b>${money(a.market_rent)}/mo</b></div>
+      <div><span>Section 8 rent</span><b>${a.section8_rent ? money(a.section8_rent) + "/mo" : "n/a"}</b></div>
+      <div><span>Rehab estimate</span><b>${money(a.rehab_cost)}</b></div>
+      <div><span>All-in cost</span><b>${money(a.all_in_cost)}</b></div>
+      <div><span>NOI</span><b>${money(a.noi)}/yr</b></div>
+      <div><span>Cap rate</span><b>${pct(a.cap_rate)}</b></div>
+      <div><span>Cash-on-cash</span><b>${pct(a.cash_on_cash)}</b></div>
+      <div><span>Cash flow</span><b>${money(a.cash_flow_monthly)}/mo</b></div>
+      <div><span>DSCR</span><b>${a.dscr ?? "–"}</b></div>
+      <div><span>Rent ÷ all-in (1% rule)</span><b>${pct(a.one_percent_ratio)}</b></div>
+    </div>
+    <div class="section"><h3>Condition (${esc(c.method)})</h3>${esc(c.summary)}</div>
+    ${list("Repairs mentioned", c.repair_items)}
+    ${list("Positives", c.positive_signals)}
+    ${list("Distress signals", c.distress_signals)}
+    ${list("Financing", c.financing_notes)}
+    ${list("Notes", a.notes)}
+    ${h.length > 1 ? list("Price history", h.map(p => `${p.date.slice(0,10)}: ${money(p.price)}`)) : ""}
+    <div class="section"><h3>Listing description</h3><div class="desc">${esc(l.description) || "(none)"}</div></div>`;
+  $("detail").classList.add("open");
+}
+
+$("rows").addEventListener("click", e => { const tr = e.target.closest("tr[data-key]"); if (tr) openDetail(tr.dataset.key); });
+$("close").onclick = () => $("detail").classList.remove("open");
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("detail").classList.remove("open"); });
+document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+  const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : -1; sortKey = k; render();
+});
+["q","minScore","cond","fin","distressed","s8"].forEach(id => $(id).addEventListener("input", render));
+$("reanalyze").onclick = async () => {
+  $("reanalyze").disabled = true; $("reanalyze").textContent = "Analyzing…";
+  await fetch("/api/analyze", { method: "POST" });
+  $("reanalyze").disabled = false; $("reanalyze").textContent = "Re-analyze";
+  load();
+};
+load();
+</script>
+</body>
+</html>

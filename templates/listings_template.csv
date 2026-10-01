@@ -1,0 +1,2 @@
+address,city,state,zip,price,beds,baths,sqft,units,year_built,property_type,listing_type,days_on_market,annual_taxes,description,url
+123 Example St,Anytown,OH,44105,65000,3,1,1250,1,1925,single family,foreclosure,45,1800,"Bank owned, sold as-is. Needs new roof and furnace. Cash only.",https://example.com/listing/123
